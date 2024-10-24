@@ -1,4 +1,6 @@
 import os
+from enum import unique
+
 import numpy as np
 import pydicom
 import nibabel as nib
@@ -42,18 +44,46 @@ def split_dataset2nnunet(dataset_name, feature_path, label_path):
             print(f"copy false {e}")
 
     assert isinstance(feature_path, list) & isinstance(label_path, list), "paths must be a list"
+    if not _check_folder_exists("nnUNet_raw"):
+        os.makedirs("nnUNet_raw")
+    dataset_name = "nnUNet_raw" + "\\" + dataset_name
     if not _check_folder_exists(dataset_name):
         os.makedirs(dataset_name)
     nnunet_train_path = os.path.join(dataset_name, "imagesTr")
     nnunet_label_path = os.path.join(dataset_name, "labelsTr")
-    os.makedirs(nnunet_train_path)
-    os.makedirs(nnunet_label_path)
-    for path in feature_path:
-        _copy_file(path, nnunet_train_path + "\\" + os.path.basename(path))
-    for path in label_path:
-        _copy_file(path, nnunet_label_path + "\\" + os.path.basename(path))
+    if not _check_folder_exists(nnunet_train_path):
+        os.makedirs(nnunet_train_path)
+        for path in feature_path:
+            _copy_file(path, nnunet_train_path + "\\" + os.path.basename(path))
+    if not _check_folder_exists(nnunet_label_path):
+        os.makedirs(nnunet_label_path)
+        for path in label_path:
+            _copy_file(path, nnunet_label_path + "\\" + os.path.basename(path))
+    dataset_json_path = os.path.join(dataset_name, "dataset.json")
+    dataset_json = \
+        """{ 
+         "channel_names": {
+           "0": "CT"
+         }, 
+         "labels": {
+           "background": 0,
+           "LN": 1
+         }, 
+         "numTraining": 32, 
+         "file_ending": ".nii.gz",
+         "overwrite_image_reader_writer": "SimpleITKIO"
+         }"""
+    if not os.path.exists(dataset_json_path):
+        with open(dataset_json_path, "w") as f:
+            f.write(dataset_json)
 
 
 # from Path import LyNoS_feature_path, LyNoS_ln_label_path
 #
-# split_dataset2nnunet("lynos_niigz", LyNoS_feature_path, LyNoS_ln_label_path)
+# split_dataset2nnunet("Dataset001_lynosNiigz", LyNoS_feature_path, LyNoS_ln_label_path)
+
+
+def read_niigz(file_path):
+    img = nib.load(file_path)
+    data = img.get_fdata()
+    return data
