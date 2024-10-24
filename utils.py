@@ -57,8 +57,8 @@ def split_dataset2nnunet(dataset_name, feature_path, label_path):
             _copy_file(path, nnunet_train_path + "\\" + os.path.basename(path))
     if not _check_folder_exists(nnunet_label_path):
         os.makedirs(nnunet_label_path)
-        for path in label_path:
-            _copy_file(path, nnunet_label_path + "\\" + os.path.basename(path))
+        for i,path in enumerate(label_path):
+            _copy_file(path, nnunet_label_path + "\\" + os.path.basename(feature_path[i]).split(".")[0].rstrip("_data") + ".nii.gz")
     dataset_json_path = os.path.join(dataset_name, "dataset.json")
     dataset_json = \
         """{ 
@@ -69,7 +69,7 @@ def split_dataset2nnunet(dataset_name, feature_path, label_path):
            "background": 0,
            "LN": 1
          }, 
-         "numTraining": 32, 
+         "numTraining": 15, 
          "file_ending": ".nii.gz",
          "overwrite_image_reader_writer": "SimpleITKIO"
          }"""
@@ -78,8 +78,8 @@ def split_dataset2nnunet(dataset_name, feature_path, label_path):
             f.write(dataset_json)
 
 
-# from Path import LyNoS_feature_path, LyNoS_ln_label_path
-#
+from Path import LyNoS_feature_path, LyNoS_ln_label_path,LNQ2023_USAO_DATASET_PATH
+
 # split_dataset2nnunet("Dataset001_lynosNiigz", LyNoS_feature_path, LyNoS_ln_label_path)
 
 
@@ -87,3 +87,10 @@ def read_niigz(file_path):
     img = nib.load(file_path)
     data = img.get_fdata()
     return data
+
+def read_dicom(file_path):
+    dicom_file = pydicom.dcmread(file_path + "\\" + "1-001.dcm")
+    image_data = dicom_file.pixel_array
+    return image_data
+
+print(read_dicom(LNQ2023_USAO_DATASET_PATH[0]).shape)
