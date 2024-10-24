@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pydicom
 import nibabel as nib
+import shutil
 
 
 def dicom_to_nifti(dcm_folder, nifti_file):
@@ -15,7 +16,6 @@ def dicom_to_nifti(dcm_folder, nifti_file):
     dicom_files = [os.path.join(dcm_folder, f) for f in os.listdir(dcm_folder) if f.endswith('.dcm')]
 
     # Read the first DICOM file to get metadata
-    dcm_data = pydicom.dcmread(dicom_files[0])
     pixel_array = np.stack([pydicom.dcmread(f).pixel_array for f in dicom_files], axis=-1)
 
     # Create NIfTI image
@@ -25,4 +25,35 @@ def dicom_to_nifti(dcm_folder, nifti_file):
     nib.save(nifti_img, nifti_file)
 
 
+def split_dataset2nnunet(dataset_name, feature_path, label_path):
+    def _check_folder_exists(folder_path):
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            return True
+        else:
+            return False
 
+    def _copy_file(source, destination):
+        try:
+            shutil.copy(source, destination)
+            print(f"file '{source}' copied 2 '{destination}'。")
+        except FileNotFoundError:
+            print(f"file '{source}' don't exist。")
+        except Exception as e:
+            print(f"copy false {e}")
+
+    assert isinstance(feature_path, list) & isinstance(label_path, list), "paths must be a list"
+    if not _check_folder_exists(dataset_name):
+        os.makedirs(dataset_name)
+    nnunet_train_path = os.path.join(dataset_name, "imagesTr")
+    nnunet_label_path = os.path.join(dataset_name, "labelsTr")
+    os.makedirs(nnunet_train_path)
+    os.makedirs(nnunet_label_path)
+    for path in feature_path:
+        _copy_file(path, nnunet_train_path + "\\" + os.path.basename(path))
+    for path in label_path:
+        _copy_file(path, nnunet_label_path + "\\" + os.path.basename(path))
+
+
+# from Path import LyNoS_feature_path, LyNoS_ln_label_path
+#
+# split_dataset2nnunet("lynos_niigz", LyNoS_feature_path, LyNoS_ln_label_path)
